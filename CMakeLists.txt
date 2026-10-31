@@ -74,9 +74,22 @@ endif()
 if(NOT DEFINED GGML_CUDA_GRAPHS)
     set(GGML_CUDA_GRAPHS_DEFAULT ON)
 endif()
-set(GGML_SOURCE_DIR "${CMAKE_SOURCE_DIR}/ggml" CACHE PATH "ggml source tree")
-add_subdirectory(${GGML_SOURCE_DIR} ggml)
+# A parent project that already provides the `ggml` target (one ggml per binary)
+# sets GGML_SOURCE_DIR to that tree for the headers and skips this build.
+set(GGML_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/ggml" CACHE PATH "ggml source tree")
+if(NOT TARGET ggml)
+    add_subdirectory(${GGML_SOURCE_DIR} ggml)
+endif()
 
+# Tools (CLI, server, quantizer, ABI test) only for a standalone build.
+if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+    set(QWEN_BUILD_TOOLS_DEFAULT ON)
+else()
+    set(QWEN_BUILD_TOOLS_DEFAULT OFF)
+endif()
+option(QWEN_BUILD_TOOLS "Build the qwentts.cpp CLI tools and server" ${QWEN_BUILD_TOOLS_DEFAULT})
+
+if(QWEN_BUILD_TOOLS)
 # cpp-httplib (HTTP server library, no SSL, behind reverse proxy in prod).
 # Used by tts-server.
 add_subdirectory(vendor/cpp-httplib)
@@ -89,13 +102,14 @@ if(MSVC)
 else()
     target_compile_options(yyjson PRIVATE -w)
 endif()
+endif()
 
 # Shared compile options and ggml linkage
 macro(link_ggml_backends target)
     target_include_directories(${target} PRIVATE
-        ${CMAKE_SOURCE_DIR}/src
-        ${CMAKE_SOURCE_DIR}
-        ${CMAKE_BINARY_DIR}
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${CMAKE_CURRENT_SOURCE_DIR}
+        ${CMAKE_CURRENT_BINARY_DIR}
     )
     target_include_directories(${target} SYSTEM PRIVATE
         ${GGML_SOURCE_DIR}/include
@@ -169,6 +183,7 @@ if(QWEN_SHARED)
     link_ggml_backends(qwen)
 endif()
 
+if(QWEN_BUILD_TOOLS)
 # quantize: GGUF requantizer (BF16 -> K-quants), shared policy with
 # omnivoice.cpp / acestep.cpp.
 add_executable(quantize tools/quantize.cpp)
@@ -207,8 +222,9 @@ else()
     target_compile_options(test-abi-c PRIVATE -Wall -Werror -pedantic)
 endif()
 target_include_directories(test-abi-c PRIVATE
-    ${CMAKE_SOURCE_DIR}/src
-    ${CMAKE_BINARY_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_BINARY_DIR}
 )
 target_link_libraries(test-abi-c PRIVATE qwen-core)
 link_ggml_backends(test-abi-c)
+endif()
