@@ -59,7 +59,7 @@ extern "C" {
 // git short hash + commit date string returned by qt_version(); for
 // binding compat checks, QT_ABI_VERSION is the only number that
 // matters.
-#define QT_ABI_VERSION 6
+#define QT_ABI_VERSION 7
 
 // Oldest struct layout this build addresses. A v4 or older
 // qt_tts_params places its trailing fields at offsets this build does
@@ -353,6 +353,14 @@ struct qt_tts_params {
     int             ref_spk_dim;
     const int32_t * ref_codes;
     int             ref_T;
+
+    // ABI 7. Buffered path only: after EOS, decode this many extra
+    // frames copied from the last voice reference frame (room tone)
+    // so the causal codec decoder rings out the final generated frame
+    // instead of the audio stopping mid-decay. The extra audio is kept;
+    // the caller trims it. 0 (default) disables; ignored without
+    // reference codes.
+    int tail_pad_frames;
 };
 
 // Initialise to the standard defaults. Strings NULL, seed -1, sampling

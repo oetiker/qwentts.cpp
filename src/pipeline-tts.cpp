@@ -1015,7 +1015,13 @@ static void tts_slot_complete(TtsEngine * e, TtsSlot & s) {
             if (s.ref_codes_ptr != NULL) {
                 seed = s.ref_codes_T < left_ctx_frames ? s.ref_codes_T : left_ctx_frames;
             }
-            const int            T_dec = seed + T_frames;
+            // Tail pad (ABI 7): extra room tone frames after EOS let the
+            // causal decoder ring out the last generated frame.
+            int pad = 0;
+            if (params->abi_version >= 7 && s.ref_codes_ptr != NULL && params->tail_pad_frames > 0) {
+                pad = params->tail_pad_frames;
+            }
+            const int            T_dec = seed + T_frames + pad;
             std::vector<int32_t> codes_kt((size_t) num_codebooks * (size_t) T_dec);
             for (int k = 0; k < num_codebooks; k++) {
                 int32_t * row = codes_kt.data() + (size_t) k * (size_t) T_dec;
@@ -1026,6 +1032,10 @@ static void tts_slot_complete(TtsEngine * e, TtsSlot & s) {
                 }
                 for (int t = 0; t < T_frames; t++) {
                     row[(size_t) (seed + t)] = s.all_codes[(size_t) t][(size_t) k];
+                }
+                const int32_t pv = pad > 0 ? s.ref_codes_ptr[(size_t) k * (size_t) s.ref_codes_T + (size_t) (s.ref_codes_T - 1)] : 0;
+                for (int t = 0; t < pad; t++) {
+                    row[(size_t) (seed + T_frames + t)] = pv;
                 }
             }
             Timer              t_codec;
