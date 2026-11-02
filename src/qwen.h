@@ -59,7 +59,7 @@ extern "C" {
 // git short hash + commit date string returned by qt_version(); for
 // binding compat checks, QT_ABI_VERSION is the only number that
 // matters.
-#define QT_ABI_VERSION 7
+#define QT_ABI_VERSION 8
 
 // Oldest struct layout this build addresses. A v4 or older
 // qt_tts_params places its trailing fields at offsets this build does
@@ -361,6 +361,14 @@ struct qt_tts_params {
     // the caller trims it. 0 (default) disables; ignored without
     // reference codes.
     int tail_pad_frames;
+
+    // ABI 8. Voice clone (ICL) prompt layout. 0 (default, upstream
+    // generate_voice_clone default): streaming text feed, the text that
+    // does not fit beside the reference codes is fed one token per
+    // generated frame. 1: upstream non_streaming_mode=True, the whole
+    // text sits in the prompt before the reference codes (reported to
+    // avoid speech-rate drift in long generations, QwenLM/Qwen3-TTS#239).
+    int icl_non_streaming;
 };
 
 // Initialise to the standard defaults. Strings NULL, seed -1, sampling

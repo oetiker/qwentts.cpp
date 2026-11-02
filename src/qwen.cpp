@@ -268,6 +268,7 @@ void qt_tts_default_params(struct qt_tts_params * p) {
     p->ref_codes             = nullptr;
     p->ref_T                 = 0;
     p->tail_pad_frames       = 0;
+    p->icl_non_streaming     = 0;
 }
 
 int qt_num_codebooks(const struct qt_context * q) {

@@ -872,7 +872,8 @@ bool tts_engine_admit(TtsEngine * e, TtsJob * job) {
 
     Timer t_build;
     if (!prompt_builder_build(pt, e->tok, params->text, lang, instruct, speaker, ref_spk_emb_ptr, ref_text,
-                              s.ref_codes_ptr, s.ref_codes_T, &s.prompt)) {
+                              s.ref_codes_ptr, s.ref_codes_T,
+                              params->abi_version >= 8 && params->icl_non_streaming != 0, &s.prompt)) {
         e->slots.pop_back();
         return tts_admit_fail(job, QT_STATUS_GENERATE_FAILED);
     }
